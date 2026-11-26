@@ -103,84 +103,109 @@ class _HomePageState extends State<HomePage> with Refena {
         }
         vm.changeTab(HomeTab.send);
       },
-      child: ResponsiveBuilder(
-        builder: (sizingInformation) {
-          return Scaffold(
-            body: Row(
-              children: [
-                if (!sizingInformation.isMobile)
-                  NavigationRail(
-                    selectedIndex: vm.currentTab.index,
-                    onDestinationSelected: (index) => vm.changeTab(HomeTab.values[index]),
-                    extended: sizingInformation.isDesktop,
-                    backgroundColor: Theme.of(context).cardColorWithElevation,
-                    leading: sizingInformation.isDesktop
-                        ? const Column(
-                            children: [
-                              SizedBox(height: 20),
-                              Text(
-                                'LocalSend',
-                                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-                                textAlign: TextAlign.center,
-                              ),
-                              SizedBox(height: 20),
-                            ],
-                          )
-                        : null,
-                    destinations: HomeTab.values.map((tab) {
-                      return NavigationRailDestination(
-                        icon: Icon(tab.icon),
-                        label: Text(tab.label),
-                      );
-                    }).toList(),
-                  ),
-                Expanded(
-                  child: SafeArea(
-                    left: sizingInformation.isMobile,
-                    child: Stack(
-                      children: [
-                        PageView(
-                          controller: vm.controller,
-                          physics: const NeverScrollableScrollPhysics(),
-                          children: const [
-                            ReceiveTab(),
-                            SendTab(),
-                            SettingsTab(),
-                          ],
-                        ),
-                        if (_dragAndDropIndicator)
-                          Container(
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).scaffoldBackgroundColor,
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.file_download, size: 128),
-                                const SizedBox(height: 30),
-                                Text(t.sendTab.placeItems, style: Theme.of(context).textTheme.titleLarge),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
+      child: HomeScaffold(
+        currentTab: vm.currentTab,
+        onTabChanged: vm.changeTab,
+        child: Stack(
+          children: [
+            PageView(
+              controller: vm.controller,
+              physics: const NeverScrollableScrollPhysics(),
+              children: const [
+                ReceiveTab(),
+                SendTab(),
+                SettingsTab(),
               ],
             ),
-            bottomNavigationBar: sizingInformation.isMobile
-                ? NavigationBar(
-                    selectedIndex: vm.currentTab.index,
-                    onDestinationSelected: (index) => vm.changeTab(HomeTab.values[index]),
-                    destinations: HomeTab.values.map((tab) {
-                      return NavigationDestination(icon: Icon(tab.icon), label: tab.label);
-                    }).toList(),
-                  )
-                : null,
-          );
-        },
+            if (_dragAndDropIndicator)
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.file_download, size: 128),
+                    const SizedBox(height: 30),
+                    Text(t.sendTab.placeItems, style: Theme.of(context).textTheme.titleLarge),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+@visibleForTesting
+class HomeScaffold extends StatelessWidget {
+  final HomeTab currentTab;
+  final ValueChanged<HomeTab> onTabChanged;
+  final Widget child;
+
+  const HomeScaffold({
+    required this.currentTab,
+    required this.onTabChanged,
+    required this.child,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ResponsiveBuilder(
+      builder: (sizingInformation) {
+        final isRtl = Directionality.of(context) == TextDirection.rtl;
+        return Scaffold(
+          body: Row(
+            children: [
+              if (sizingInformation.useNavigationRail)
+                NavigationRail(
+                  selectedIndex: currentTab.index,
+                  onDestinationSelected: (index) => onTabChanged(HomeTab.values[index]),
+                  extended: sizingInformation.isDesktop,
+                  backgroundColor: Theme.of(context).cardColorWithElevation,
+                  leading: sizingInformation.isDesktop
+                      ? const Column(
+                          children: [
+                            SizedBox(height: 20),
+                            Text(
+                              'LocalSend',
+                              style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: 20),
+                          ],
+                        )
+                      : null,
+                  destinations: HomeTab.values.map((tab) {
+                    return NavigationRailDestination(
+                      icon: Icon(tab.icon),
+                      label: Text(tab.label),
+                    );
+                  }).toList(),
+                ),
+              Expanded(
+                child: SafeArea(
+                  left: !sizingInformation.useNavigationRail || isRtl,
+                  right: !sizingInformation.useNavigationRail || !isRtl,
+                  child: child,
+                ),
+              ),
+            ],
+          ),
+          bottomNavigationBar: !sizingInformation.useNavigationRail
+              ? NavigationBar(
+                  selectedIndex: currentTab.index,
+                  onDestinationSelected: (index) => onTabChanged(HomeTab.values[index]),
+                  destinations: HomeTab.values.map((tab) {
+                    return NavigationDestination(icon: Icon(tab.icon), label: tab.label);
+                  }).toList(),
+                )
+              : null,
+        );
+      },
     );
   }
 }

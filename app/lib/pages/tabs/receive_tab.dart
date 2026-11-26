@@ -62,61 +62,68 @@ class _ReceiveTabState extends State<ReceiveTab> {
         Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: ResponsiveListView.defaultMaxWidth),
-            child: Padding(
-              padding: const EdgeInsets.all(30),
-              child: ColumnListView(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        InitialFadeTransition(
-                          duration: const Duration(milliseconds: 300),
-                          delay: const Duration(milliseconds: 200),
-                          child: Consumer(
-                            builder: (context, ref) {
-                              final animations = ref.watch(animationProvider);
-                              final activeTab = ref.watch(homePageControllerProvider.select((state) => state.currentTab));
-                              return RotatingWidget(
-                                duration: const Duration(seconds: 15),
-                                spinning: serverState != null && animations && activeTab == HomeTab.receive,
-                                child: const LocalSendLogo(withText: false),
-                              );
-                            },
-                          ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // >=500 pt fits the 200 px logo, 60 px vertical padding, text, and button; below that, compact/scale and let ColumnListView scroll.
+                final isCompactHeight = constraints.maxHeight < 500;
+                final logoSize = isCompactHeight ? (constraints.maxHeight * 0.32).clamp(64.0, 200.0) : 200.0;
+                return Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 30, vertical: isCompactHeight ? 12 : 30),
+                  child: ColumnListView(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            InitialFadeTransition(
+                              duration: const Duration(milliseconds: 300),
+                              delay: const Duration(milliseconds: 200),
+                              child: Consumer(
+                                builder: (context, ref) {
+                                  final animations = ref.watch(animationProvider);
+                                  final activeTab = ref.watch(homePageControllerProvider.select((state) => state.currentTab));
+                                  return RotatingWidget(
+                                    duration: const Duration(seconds: 15),
+                                    spinning: serverState != null && animations && activeTab == HomeTab.receive,
+                                    child: LocalSendLogo(withText: false, size: logoSize),
+                                  );
+                                },
+                              ),
+                            ),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(serverState?.alias ?? alias, style: const TextStyle(fontSize: 48)),
+                            ),
+                            InitialFadeTransition(
+                              duration: const Duration(milliseconds: 300),
+                              delay: const Duration(milliseconds: 500),
+                              child: Text(
+                                serverState == null ? t.general.offline : localIps.map((ip) => '#${ip.visualId}').toSet().join(' '),
+                                style: const TextStyle(fontSize: 24),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
                         ),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(serverState?.alias ?? alias, style: const TextStyle(fontSize: 48)),
-                        ),
-                        InitialFadeTransition(
-                          duration: const Duration(milliseconds: 300),
-                          delay: const Duration(milliseconds: 500),
-                          child: Text(
-                            serverState == null ? t.general.offline : localIps.map((ip) => '#${ip.visualId}').toSet().join(' '),
-                            style: const TextStyle(fontSize: 24),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: Center(
-                      child: OutlinedButton.icon(
-                        onPressed: () async {
-                          await context.global.dispatchAsync(NavigateAction.push(const WebSharePage()));
-                        },
-                        icon: Icon(Icons.language),
-                        label: Text(t.receiveTab.link),
                       ),
-                    ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: Center(
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              await context.global.dispatchAsync(NavigateAction.push(const WebSharePage()));
+                            },
+                            icon: Icon(Icons.language),
+                            label: Text(t.receiveTab.link),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: isCompactHeight ? 8 : 15),
+                    ],
                   ),
-                  const SizedBox(height: 15),
-                ],
-              ),
+                );
+              },
             ),
           ),
         ),
